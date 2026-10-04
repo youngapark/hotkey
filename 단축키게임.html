@@ -1,0 +1,1995 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>윈도우즈 단축키 마스터 미션 게임</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Gaegu & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Tone.js for sound effects -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              pastel: '#eecef3',
+              light: '#fbf0fc',
+              dark: '#a855f7',
+              deep: '#7e22ce',
+              accent: '#f472b6',
+              yellow: '#fde047'
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans KR"', 'sans-serif'],
+            fun: ['"Gaegu"', 'cursive']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* 키보드 애니메이션 및 커스텀 스타일 */
+    .key-cap {
+      transition: all 0.08s ease;
+      box-shadow: 0 4px 0 #9ca3af;
+      user-select: none;
+    }
+    .key-cap:active, .key-cap.active {
+      transform: translateY(3px);
+      box-shadow: 0 1px 0 #9ca3af;
+      background-color: #fbcfe8 !important;
+      color: #9d174d !important;
+      border-color: #f472b6 !important;
+    }
+    .wiggle {
+      animation: wiggle 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes wiggle {
+      0% { transform: rotate(-3deg); }
+      100% { transform: rotate(3deg); }
+    }
+    .pulse-glow {
+      animation: pulseGlow 1.8s infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(238, 206, 243, 0.7); }
+      50% { box-shadow: 0 0 0 16px rgba(238, 206, 243, 0); }
+    }
+    .selected-object {
+      outline: 4px dashed #9333ea;
+      outline-offset: 4px;
+      transform: scale(1.06);
+      background-color: #faf5ff;
+    }
+    /* 스크롤바 커스텀 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d8b4fe;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #c084fc;
+    }
+  </style>
+</head>
+
+<body class="bg-[#fcf8fd] text-slate-800 font-sans min-h-screen flex flex-col antialiased selection:bg-purple-200">
+
+  <!-- 헤더 영역 -->
+  <header class="bg-white/85 backdrop-blur border-b border-purple-100 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-400 to-pink-300 flex items-center justify-center text-white text-xl shadow-md transform hover:rotate-6 transition">
+          <i class="fa-solid fa-keyboard"></i>
+        </div>
+        <div>
+          <h1 class="text-xl md:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+            윈도우즈 단축키 미션 게임
+            <span class="text-xs bg-[#eecef3] text-purple-900 font-bold px-2 py-0.5 rounded-full border border-purple-300">어린이 & 어르신 환영</span>
+          </h1>
+          <p class="text-xs text-slate-500 font-medium">컴퓨터 마스터가 되는 가장 빠르고 쉬운 지름길!</p>
+        </div>
+      </div>
+
+      <!-- 우측 컨트롤 버튼들 -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="soundToggleBtn" onclick="toggleSound()" class="p-2.5 rounded-xl border border-slate-200 hover:bg-purple-50 text-slate-600 transition flex items-center gap-1.5 text-sm font-semibold" title="효과음 켜기/끄기">
+          <i id="soundIcon" class="fa-solid fa-volume-high text-purple-600"></i>
+          <span class="hidden sm:inline" id="soundText">소리 켬</span>
+        </button>
+
+        <button onclick="promptResetProgress()" class="p-2.5 rounded-xl border border-slate-200 hover:bg-red-50 text-slate-500 hover:text-red-500 transition text-sm font-semibold" title="처음부터 다시하기">
+          <i class="fa-solid fa-rotate-right"></i>
+          <span class="hidden sm:inline">처음으로</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 미션 진행도 바 -->
+    <div class="w-full bg-slate-100 h-2">
+      <div id="missionProgressBar" class="h-full bg-gradient-to-r from-purple-400 via-pink-400 to-yellow-300 transition-all duration-500 rounded-r-full" style="width: 20%;"></div>
+    </div>
+  </header>
+
+  <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+
+    <!-- 단계 탭 내비게이션 (1~5단계 완벽 구성) -->
+    <section class="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+      <!-- 미션 1 버튼 -->
+      <button onclick="switchMission(1)" id="tab-btn-1" class="tab-button relative p-3 rounded-2xl border-2 border-purple-400 bg-white shadow-sm hover:shadow-md transition text-left flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-700 font-bold flex items-center justify-center shrink-0">1</span>
+        <div class="overflow-hidden">
+          <span class="text-xs font-semibold text-purple-600 block">기초 글자 복사</span>
+          <span class="text-sm font-bold text-slate-800 truncate block">Ctrl + C / V</span>
+        </div>
+        <span id="tab-badge-1" class="absolute top-2 right-2 text-emerald-500 hidden"><i class="fa-solid fa-circle-check"></i></span>
+      </button>
+
+      <!-- 미션 2 버튼 -->
+      <button onclick="switchMission(2)" id="tab-btn-2" class="tab-button relative p-3 rounded-2xl border-2 border-transparent bg-white/70 shadow-sm hover:shadow-md transition text-left flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 font-bold flex items-center justify-center shrink-0">2</span>
+        <div class="overflow-hidden">
+          <span class="text-xs font-semibold text-slate-500 block">캐릭터 3총사 복사</span>
+          <span class="text-sm font-bold text-slate-800 truncate block">세 친구 모두 복제</span>
+        </div>
+        <span id="tab-badge-2" class="absolute top-2 right-2 text-emerald-500 hidden"><i class="fa-solid fa-circle-check"></i></span>
+      </button>
+
+      <!-- 미션 3 버튼 -->
+      <button onclick="switchMission(3)" id="tab-btn-3" class="tab-button relative p-3 rounded-2xl border-2 border-transparent bg-white/70 shadow-sm hover:shadow-md transition text-left flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 font-bold flex items-center justify-center shrink-0">3</span>
+        <div class="overflow-hidden">
+          <span class="text-xs font-semibold text-slate-500 block">글자 싹둑 잘라내기</span>
+          <span class="text-sm font-bold text-slate-800 truncate block">Ctrl + X / V</span>
+        </div>
+        <span id="tab-badge-3" class="absolute top-2 right-2 text-emerald-500 hidden"><i class="fa-solid fa-circle-check"></i></span>
+      </button>
+
+      <!-- 미션 4 버튼 -->
+      <button onclick="switchMission(4)" id="tab-btn-4" class="tab-button relative p-3 rounded-2xl border-2 border-transparent bg-white/70 shadow-sm hover:shadow-md transition text-left flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 font-bold flex items-center justify-center shrink-0">4</span>
+        <div class="overflow-hidden">
+          <span class="text-xs font-semibold text-slate-500 block">전체선택 & 되돌리기</span>
+          <span class="text-sm font-bold text-slate-800 truncate block">Ctrl + A / Z</span>
+        </div>
+        <span id="tab-badge-4" class="absolute top-2 right-2 text-emerald-500 hidden"><i class="fa-solid fa-circle-check"></i></span>
+      </button>
+
+      <!-- 미션 5 버튼 -->
+      <button onclick="switchMission(5)" id="tab-btn-5" class="tab-button relative p-3 rounded-2xl border-2 border-transparent bg-white/70 shadow-sm hover:shadow-md transition text-left flex items-center gap-3">
+        <span class="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 font-bold flex items-center justify-center shrink-0">5</span>
+        <div class="overflow-hidden">
+          <span class="text-xs font-semibold text-slate-500 block">최종 화면 캡처</span>
+          <span class="text-sm font-bold text-slate-800 truncate block">나만의 마스터 카드</span>
+        </div>
+        <span id="tab-badge-5" class="absolute top-2 right-2 text-emerald-500 hidden"><i class="fa-solid fa-circle-check"></i></span>
+      </button>
+    </section>
+
+    <!-- 인터랙티브 가상 키보드 가이드 HUD -->
+    <section class="bg-gradient-to-r from-purple-100/70 via-pink-50/60 to-purple-100/70 border border-purple-200 rounded-3xl p-4 sm:p-5 shadow-sm">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-purple-500 text-white flex items-center justify-center text-lg shadow">
+            <i class="fa-regular fa-lightbulb"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-purple-700 bg-purple-200/80 px-2 py-0.5 rounded-md">키보드 도우미</span>
+              <span id="targetShortcutLabel" class="text-base sm:text-lg font-black text-purple-900">Ctrl + C (복사하기)</span>
+            </div>
+            <p id="targetShortcutDesc" class="text-xs sm:text-sm text-slate-600 mt-0.5">키보드의 <span class="font-bold text-purple-700">Ctrl 키</span>를 누른 채로 <span class="font-bold text-purple-700">C 키</span>를 톡 누르면 복사돼요!</p>
+          </div>
+        </div>
+
+        <!-- 가상 키보드 건반 시각화 -->
+        <div class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+          <div id="vkey-win" class="key-cap bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[46px] text-center flex items-center justify-center">
+            <i class="fa-brands fa-windows text-blue-500"></i>
+          </div>
+          <div id="vkey-shift" class="key-cap bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[50px] text-center">
+            Shift
+          </div>
+          <div id="vkey-s" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            S
+          </div>
+          <div id="vkey-prt" class="key-cap bg-white border border-slate-300 rounded-xl px-2.5 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[54px] text-center">
+            PrtScn
+          </div>
+          <div id="vkey-ctrl" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[50px] text-center">
+            Ctrl
+          </div>
+          <span class="text-slate-400 font-black">+</span>
+          <div id="vkey-c" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            C
+          </div>
+          <div id="vkey-v" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            V
+          </div>
+          <div id="vkey-x" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            X
+          </div>
+          <div id="vkey-a" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            A
+          </div>
+          <div id="vkey-z" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[42px] text-center">
+            Z
+          </div>
+          <div id="vkey-del" class="key-cap bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm font-black text-slate-700 min-w-[50px] text-center">
+            Del
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- [미션 1] 글자 복사 & 붙여넣기 (Ctrl + C & Ctrl + V) -->
+    <div id="mission-stage-1" class="mission-view bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 flex flex-col gap-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full mb-1">
+            <i class="fa-solid fa-flag-checkered"></i> 미션 1 : 필수 기초
+          </span>
+          <h2 class="text-2xl font-black text-slate-800">마법의 주문을 복사해서 금고에 넣기!</h2>
+          <p class="text-sm text-slate-500">메모장에 적힌 글씨를 마우스로 드래그(선택)한 뒤 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + C</kbd> 로 복사하고, 금고 입력창에 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + V</kbd> 로 붙여넣으세요!</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="autoSelectText('stage1-source')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+            <i class="fa-regular fa-hand-pointer mr-1"></i>글자 한번에 잡기
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        <div class="bg-amber-50/70 border-2 border-dashed border-amber-300 rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-amber-800 flex items-center gap-1.5">
+              <i class="fa-regular fa-note-sticky text-amber-500"></i> 마법의 메모장
+            </span>
+            <span class="text-xs bg-amber-200 text-amber-900 font-bold px-2 py-0.5 rounded-md">Ctrl+C 대상</span>
+          </div>
+
+          <p class="text-xs text-amber-700">아래 노란색 글씨를 마우스로 쭉 끌어서(드래그) 파랗게 만든 후 <span class="font-extrabold text-purple-800">Ctrl + C</span> 를 누르세요!</p>
+
+          <textarea id="stage1-source" readonly class="w-full h-36 bg-amber-100/60 rounded-xl p-4 text-lg font-black text-amber-900 border border-amber-200 focus:outline-purple-400 focus:ring-2 focus:ring-purple-200 resize-none select-all tracking-wide cursor-text leading-relaxed">⭐ 열려라 참깨! 윈도우 단축키 대장정 ⭐</textarea>
+
+          <div class="text-xs text-slate-500 flex items-center justify-between">
+            <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-purple-400"></i> 마우스를 드래그하여 글자를 파랗게 블록 지정하세요.</span>
+            <span id="stage1-select-badge" class="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[11px]">선택 대기 중</span>
+          </div>
+        </div>
+
+        <div class="bg-purple-50/70 border-2 border-purple-300 rounded-2xl p-5 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-bold text-purple-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-vault text-purple-500"></i> 비밀 마법 금고
+              </span>
+              <span class="text-xs bg-purple-200 text-purple-900 font-bold px-2 py-0.5 rounded-md">Ctrl+V 붙여넣기</span>
+            </div>
+            <p class="text-xs text-purple-700 mb-3">여기를 클릭하고 깜빡이는 커서가 보일 때 <span class="font-extrabold text-purple-800">Ctrl + V</span> 를 누르세요!</p>
+            
+            <div class="relative">
+              <input type="text" id="stage1-target" placeholder="여기에 복사한 주문을 붙여넣으세요..." 
+                class="w-full bg-white rounded-xl p-4 text-base font-bold text-slate-800 border-2 border-purple-200 focus:border-purple-500 focus:outline-none focus:ring-4 focus:ring-purple-100 transition shadow-inner">
+              <button onclick="checkStage1()" class="absolute right-2 top-2 bottom-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition flex items-center gap-1 shadow-sm">
+                <span>확인</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="stage1-feedback" class="p-3.5 rounded-xl bg-white border border-purple-100 text-xs text-slate-600 flex items-center gap-2">
+            <i class="fa-solid fa-bell text-amber-500"></i>
+            <span>아직 마법 주문이 들어오지 않았어요! 복사해서 붙여넣어 보세요.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- [미션 2] 캐릭터 그림(오브젝트) 복사 & 붙여넣기 -->
+    <div id="mission-stage-2" class="mission-view bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 hidden flex-col gap-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full mb-1">
+            <i class="fa-solid fa-shapes"></i> 미션 2 : 객체 복사
+          </span>
+          <h2 class="text-2xl font-black text-slate-800">동물 친구 3마리를 모두 복사해서 잔디 놀이터에 초대하기!</h2>
+          <p class="text-sm text-slate-500">글자뿐만 아니라 그림과 캐릭터도 복사할 수 있어요! 대기실의 동물 친구들을 하나씩 콕 클릭하여 선택하고 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + C</kbd>, 잔디밭을 클릭하고 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + V</kbd> 로 3마리 친구(토끼, 곰, 고양이)를 모두 데려오세요!</p>
+        </div>
+        <button onclick="resetStage2()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+          <i class="fa-solid fa-rotate-left mr-1"></i>놀이터 비우기
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
+        <!-- 왼쪽 캐릭터 대기실 -->
+        <div class="md:col-span-5 bg-purple-50/70 border-2 border-purple-200 rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-purple-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-paw text-purple-600"></i> 동물 캐릭터 대기실
+            </span>
+            <span class="text-xs bg-purple-200 text-purple-900 font-bold px-2 py-0.5 rounded-md">선택 후 Ctrl+C</span>
+          </div>
+          <p class="text-xs text-purple-700">복사하고 싶은 동물을 클릭해서 보라색 테두리가 생기게 한 다음 <span class="font-bold">Ctrl + C</span> 를 누르세요!</p>
+
+          <div class="grid grid-cols-3 gap-3 mt-2">
+            <div id="char-rabbit" onclick="selectStage2Object('rabbit', this)" class="cursor-pointer bg-white border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 hover:shadow-md transition">
+              <span class="text-4xl">🐰</span>
+              <span class="text-xs font-black text-purple-900 mt-1">마법 토끼</span>
+              <span id="badge-target-rabbit" class="text-[10px] text-pink-600 font-bold bg-pink-50 px-2 py-0.5 rounded-full">미션 1/3</span>
+            </div>
+            <div id="char-bear" onclick="selectStage2Object('bear', this)" class="cursor-pointer bg-white border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 hover:shadow-md transition">
+              <span class="text-4xl">🐻</span>
+              <span class="text-xs font-bold text-slate-700 mt-1">아기 곰</span>
+              <span id="badge-target-bear" class="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full">미션 2/3</span>
+            </div>
+            <div id="char-cat" onclick="selectStage2Object('cat', this)" class="cursor-pointer bg-white border-2 border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center gap-1 hover:shadow-md transition">
+              <span class="text-4xl">🐱</span>
+              <span class="text-xs font-bold text-slate-700 mt-1">노랑 고양이</span>
+              <span id="badge-target-cat" class="text-[10px] text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-full">미션 3/3</span>
+            </div>
+          </div>
+          <div id="stage2-select-status" class="text-xs text-purple-800 bg-white p-3 rounded-xl border border-purple-100 mt-2 font-medium">
+            동물을 마우스로 콕 클릭하여 선택해주세요.
+          </div>
+        </div>
+
+        <!-- 오른쪽 잔디 놀이터 붙여넣기 구역 -->
+        <div class="md:col-span-7 bg-emerald-50/60 border-2 border-emerald-300 rounded-2xl p-5 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                <i class="fa-solid fa-tree text-emerald-600"></i> 잔디 놀이터 (붙여넣기 구역)
+              </span>
+              <div class="flex items-center gap-1.5">
+                <span id="stage2-target-badge" class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md">잔디밭 선택 대기</span>
+                <span class="text-xs bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-md">Ctrl+V 복제 구역</span>
+              </div>
+            </div>
+            <p class="text-xs text-emerald-700 mb-3">잔디밭 안쪽을 클릭하고 <span class="font-extrabold text-emerald-800">Ctrl + V</span> 를 누르면 복사한 동물이 나타나요!</p>
+
+            <div id="stage2-target-container" tabindex="0" onclick="focusStage2Playground()" class="bg-white/90 border-2 border-dashed border-emerald-400 rounded-2xl p-4 min-h-[160px] grid grid-cols-3 sm:grid-cols-4 gap-3 items-center justify-center outline-none focus:ring-4 focus:ring-emerald-300 transition cursor-pointer">
+              <div id="stage2-empty-placeholder" class="col-span-full text-center text-slate-400 text-xs py-8 pointer-events-none">
+                <i class="fa-solid fa-sparkles text-2xl text-emerald-300 block mb-2"></i>
+                이 잔디밭을 클릭하고 <kbd class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Ctrl + V</kbd> 로 3마리 친구를 모두 모아주세요!
+              </div>
+            </div>
+          </div>
+
+          <!-- 실시간 3총사 초대 체크리스트 피드백 -->
+          <div id="stage2-feedback" class="p-3 rounded-xl bg-white border border-emerald-100 text-xs text-slate-600 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <span class="font-bold text-slate-700">초대 현황:</span>
+              <span id="stat-rabbit" class="px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200">🐰 토끼 ✕</span>
+              <span id="stat-bear" class="px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200">🐻 곰 ✕</span>
+              <span id="stat-cat" class="px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200">🐱 고양이 ✕</span>
+            </div>
+            <span class="text-emerald-700 font-extrabold">목표: 세 친구 모두 초대 (<span id="stage2-unique-count">0</span>/3)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- [미션 3] 글자 잘라내기 & 붙여넣기 (Ctrl + X & Ctrl + V) -->
+    <div id="mission-stage-3" class="mission-view bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 hidden flex-col gap-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full mb-1">
+            <i class="fa-solid fa-scissors"></i> 미션 3 : 글자 잘라내기
+          </span>
+          <h2 class="text-2xl font-black text-slate-800">사과 바구니의 엉뚱한 수박을 잘라내어 옮기기!</h2>
+          <p class="text-sm text-slate-500">사과 바구니에 들어간 '수박 🍉' 글씨를 마우스로 드래그하고 가위 단축키 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + X</kbd> 로 싹둑 잘라낸 후, 수박 바구니에 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + V</kbd> 로 붙여넣으세요!</p>
+        </div>
+        <button onclick="resetStage3()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+          <i class="fa-solid fa-rotate-left mr-1"></i>과일 원위치
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+        <!-- 원본 사과 바구니 -->
+        <div class="bg-rose-50/70 border-2 border-dashed border-rose-300 rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-rose-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-apple-whole text-rose-500"></i> 사과 바구니
+            </span>
+            <span class="text-xs bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-md">Ctrl+X 로 수박 잘라내기</span>
+          </div>
+
+          <p class="text-xs text-rose-700">'수박 🍉' 글자만 선택하거나 아래의 <strong>[수박 선택]</strong> 버튼을 누른 뒤 <span class="font-bold">Ctrl + X</span> 를 누르세요!</p>
+
+          <div class="relative">
+            <textarea id="stage3-source" class="w-full h-36 bg-white rounded-xl p-4 text-base font-bold text-slate-800 border-2 border-rose-200 focus:outline-none focus:border-rose-400 resize-none font-mono leading-relaxed" readonly>맛있는 빨간 사과 🍎
+엉뚱한 수박 🍉
+새콤달콤 꿀사과 🍏</textarea>
+            <button onclick="selectStage3Watermelon()" class="absolute right-3 top-3 text-xs bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold px-3 py-1.5 rounded-lg transition shadow-sm">
+              🍉 수박 글자만 쏙 잡기
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-500 flex items-center justify-between">
+            <span class="flex items-center gap-1"><i class="fa-solid fa-lightbulb text-amber-500"></i> 잘라내기(Ctrl+X)는 원래 자리에 있던 글자가 싹 사라져요!</span>
+            <span id="stage3-select-badge" class="font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded text-[11px]">선택 대기 중</span>
+          </div>
+        </div>
+
+        <!-- 목표 수박 바구니 -->
+        <div class="bg-emerald-50/70 border-2 border-emerald-300 rounded-2xl p-5 flex flex-col justify-between gap-3">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-bold text-emerald-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-basket-shopping text-emerald-600"></i> 수박 전용 바구니
+              </span>
+              <span class="text-xs bg-emerald-200 text-emerald-900 font-bold px-2 py-0.5 rounded-md">Ctrl+V 로 붙여넣기</span>
+            </div>
+            <p class="text-xs text-emerald-700 mb-3">여기를 클릭하고 <span class="font-extrabold text-emerald-800">Ctrl + V</span> 로 잘라낸 수박을 쏙 넣어주세요!</p>
+
+            <div class="relative">
+              <input type="text" id="stage3-target" placeholder="수박을 여기에 붙여넣어 주세요..." 
+                class="w-full bg-white rounded-xl p-4 text-base font-bold text-slate-800 border-2 border-emerald-200 focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-100 transition shadow-inner">
+              <button onclick="checkStage3()" class="absolute right-2 top-2 bottom-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition flex items-center gap-1 shadow-sm">
+                <span>확인</span>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="stage3-feedback" class="p-3.5 rounded-xl bg-white border border-emerald-100 text-xs text-slate-600 flex items-center gap-2">
+            <i class="fa-solid fa-bell text-emerald-500"></i>
+            <span>사과 바구니에서 수박을 잘라내어 이곳에 붙여넣어 보세요!</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- [미션 4] 전체선택 & 삭제 & 되돌리기 (Ctrl + A ➔ Del ➔ Ctrl + Z) -->
+    <div id="mission-stage-4" class="mission-view bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 hidden flex-col gap-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full mb-1">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> 미션 4 : 마법의 타임머신
+          </span>
+          <h2 class="text-2xl font-black text-slate-800">동물 농장 모두 선택하고 삭제 후 되돌리기!</h2>
+          <p class="text-sm text-slate-500">
+            농장 안을 클릭하고 <kbd class="bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.5 rounded">Ctrl + A</kbd> (전체선택) ➔ <kbd class="bg-red-100 text-red-800 font-bold px-1.5 py-0.5 rounded">Del</kbd> (삭제) ➔ <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + Z</kbd> (명령취소 되돌리기) 마법을 순서대로 걸어보세요!
+          </p>
+        </div>
+        <button onclick="resetStage4()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+          <i class="fa-solid fa-rotate-left mr-1"></i>농장 처음대로
+        </button>
+      </div>
+
+      <!-- 3단계 스텝 칩 가이드 -->
+      <div class="grid grid-cols-3 gap-2 text-center text-xs font-bold">
+        <div id="step4-chip-1" class="py-2.5 px-3 rounded-xl bg-purple-600 text-white shadow-sm flex items-center justify-center gap-1.5">
+          <span>1. 모두 선택</span>
+          <kbd class="bg-white/20 px-1 rounded font-mono">Ctrl+A</kbd>
+        </div>
+        <div id="step4-chip-2" class="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center gap-1.5">
+          <span>2. 비우기</span>
+          <kbd class="bg-slate-200 px-1 rounded font-mono">Del</kbd>
+        </div>
+        <div id="step4-chip-3" class="py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center gap-1.5">
+          <span>3. 되돌리기</span>
+          <kbd class="bg-slate-200 px-1 rounded font-mono">Ctrl+Z</kbd>
+        </div>
+      </div>
+
+      <!-- 인터랙티브 동물 농장 상자 -->
+      <div id="stage4-farm-container" tabindex="0" onclick="focusStage4Farm()" class="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-300 rounded-3xl p-6 min-h-[220px] flex flex-col justify-between outline-none focus:ring-4 focus:ring-amber-200 transition cursor-pointer relative shadow-inner">
+        
+        <div class="flex items-center justify-between pb-3 border-b border-amber-200/80">
+          <span class="text-xs font-black text-amber-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-cow text-amber-600"></i> 평화로운 행복 동물 농장
+          </span>
+          <span id="farm-item-count" class="text-xs font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+            동물 6마리 거주 중
+          </span>
+        </div>
+
+        <!-- 6마리 동물들 -->
+        <div id="farm-animals-box" class="grid grid-cols-3 sm:grid-cols-6 gap-3 py-6">
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐷</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">꿀꿀 돼지</span>
+          </div>
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐮</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">얼룩 송아지</span>
+          </div>
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐑</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">폭신 양</span>
+          </div>
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐔</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">꼬꼬 닭</span>
+          </div>
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐶</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">충성 멍멍이</span>
+          </div>
+          <div class="farm-animal bg-white border border-amber-200 rounded-2xl p-3 flex flex-col items-center justify-center shadow-sm transition">
+            <span class="text-4xl">🐴</span>
+            <span class="text-xs font-bold text-slate-700 mt-1">씩씩한 말</span>
+          </div>
+        </div>
+
+        <!-- 삭제 시 나타나는 빈 농장 안내 -->
+        <div id="farm-empty-msg" class="hidden py-8 text-center text-rose-500 font-bold text-sm">
+          <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 block text-rose-400"></i>
+          동물들이 전부 삭제되어 우리 밖으로 사라졌어요! <br>
+          <span class="text-purple-700 text-base font-black">Ctrl + Z (명령 취소 타임머신)</span> 을 눌러 다시 소환하세요!
+        </div>
+
+        <div id="farm-guide-text" class="text-xs text-amber-900 bg-white/80 p-3 rounded-xl border border-amber-200/60 font-semibold text-center">
+          농장을 콕 클릭한 뒤 키보드의 <span class="font-extrabold text-purple-700">Ctrl + A</span> 키를 눌러 동물들을 한 번에 모두 선택해보세요!
+        </div>
+      </div>
+    </div>
+
+    <!-- [미션 5] 화면 캡처 & 나만의 마스터 카드 완성 -->
+    <div id="mission-stage-5" class="mission-view bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-purple-100 hidden flex-col gap-6">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-100 pb-4 gap-2">
+        <div>
+          <span class="inline-flex items-center gap-1.5 text-xs font-bold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full mb-1">
+            <i class="fa-solid fa-camera"></i> 최종 미션 5 : 화면 캡처 & 마스터 카드 발급
+          </span>
+          <h2 class="text-2xl font-black text-slate-800">마스터 카드 이미지를 캡처 복사해 붙여넣고 내 이름 새기기!</h2>
+          <p class="text-sm text-slate-500">
+            윈도우즈의 화면 캡처 단축키 <kbd class="bg-pink-100 text-pink-800 font-bold px-1.5 py-0.5 rounded">Win + Shift + S</kbd> 또는 <kbd class="bg-pink-100 text-pink-800 font-bold px-1.5 py-0.5 rounded">Print Screen (PrtScn)</kbd> 키로 마스터 엠블럼을 캡처한 뒤, 카드 액자에 <kbd class="bg-purple-100 text-purple-800 font-bold px-1.5 py-0.5 rounded">Ctrl + V</kbd> 로 붙여넣고 이름을 적어 완성하세요!
+          </p>
+        </div>
+        <button onclick="resetStage5()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl transition">
+          <i class="fa-solid fa-arrow-rotate-left mr-1"></i>카드 다시 만들기
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        <!-- 1. 캡처 대상 원본 카드 그래픽 (왼쪽) -->
+        <div class="lg:col-span-5 bg-gradient-to-br from-purple-50 via-pink-50 to-amber-50 border-2 border-purple-200 rounded-2xl p-5 flex flex-col gap-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-purple-900 flex items-center gap-1.5">
+              <i class="fa-solid fa-id-badge text-purple-600"></i> 캡처할 마스터 엠블럼
+            </span>
+            <span class="text-xs bg-pink-200 text-pink-900 font-extrabold px-2 py-0.5 rounded-md">캡처 대상</span>
+          </div>
+
+          <p class="text-xs text-purple-700 leading-relaxed">
+            아래의 반짝이는 엠블럼을 <span class="font-extrabold text-pink-700">Win + Shift + S</span> 단축키로 영역 캡처하거나, 바로 아래의 <span class="font-bold underline">‘📸 캡처 복사’</span> 버튼을 눌러보세요!
+          </p>
+
+          <!-- 캡처 대상 실제 그래픽 카드 요소 -->
+          <div id="target-capture-card" class="bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 p-1 rounded-2xl shadow-lg transform hover:scale-[1.02] transition">
+            <div class="bg-slate-900 rounded-[14px] p-5 text-white flex flex-col items-center justify-center text-center relative overflow-hidden">
+              <div class="absolute -top-6 -right-6 w-20 h-20 bg-pink-500/20 rounded-full blur-xl"></div>
+              <div class="absolute -bottom-6 -left-6 w-20 h-20 bg-purple-500/20 rounded-full blur-xl"></div>
+              
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-yellow-300 to-amber-500 flex items-center justify-center text-3xl shadow-md mb-2 text-slate-900">
+                <i class="fa-solid fa-crown"></i>
+              </div>
+              <span class="text-[11px] font-extrabold tracking-widest text-amber-300 uppercase">OFFICIAL MASTER BADGE</span>
+              <h4 class="text-lg font-black tracking-tight text-white mt-0.5">WINDOWS SHORTCUT MASTER</h4>
+              <p class="text-[11px] text-purple-200 mt-1">Ctrl+C • Ctrl+V • Ctrl+X • Ctrl+A • Ctrl+Z</p>
+              <div class="mt-3 flex items-center gap-1.5 text-xs text-emerald-300 font-semibold bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                <i class="fa-solid fa-certificate"></i> 공인 1급 라이선스
+              </div>
+            </div>
+          </div>
+
+          <button onclick="captureMasterBadge()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-sm transition text-xs flex items-center justify-center gap-2">
+            <i class="fa-solid fa-camera-retro"></i>
+            <span>📸 엠블럼 원클릭 캡처 복사하기 (클릭으로 복사)</span>
+          </button>
+          <p class="text-[11px] text-slate-500 text-center">
+            * 윈도우 키보드의 <kbd class="font-mono bg-white px-1 border rounded">Win+Shift+S</kbd> 또는 <kbd class="font-mono bg-white px-1 border rounded">Print Screen(PrtScn)</kbd> 키를 누르면 바로 캡처할 수 있어요!
+          </p>
+        </div>
+
+        <!-- 2. 나만의 카드 조립 & 이름 기입 구역 (오른쪽) -->
+        <div class="lg:col-span-7 bg-white border-2 border-dashed border-purple-300 rounded-2xl p-5 sm:p-6 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i> 나만의 단축키 마스터 카드 액자
+            </span>
+            <span id="stage5-status-badge" class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md">이미지 & 이름 대기 중</span>
+          </div>
+
+          <!-- 이미지 붙여넣기 수신 박스 (Ctrl+V 포커스 영역) -->
+          <div id="stage5-paste-box" tabindex="0" onclick="focusPasteBox()" class="relative border-2 border-dashed border-purple-200 hover:border-purple-400 focus:border-purple-600 focus:bg-purple-50/50 outline-none rounded-2xl p-4 min-h-[160px] flex flex-col items-center justify-center text-center transition cursor-pointer bg-slate-50/60">
+            <div id="stage5-paste-placeholder" class="flex flex-col items-center gap-2 text-slate-500 pointer-events-none">
+              <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-paste"></i>
+              </div>
+              <p class="text-sm font-bold text-slate-700">이 액자를 클릭하고 <span class="text-purple-700 underline font-black">Ctrl + V</span> 로 이미지를 붙여넣으세요!</p>
+              <span class="text-xs text-slate-400">클립보드에 복사된 캡처 이미지가 이곳에 쏙 들어옵니다</span>
+            </div>
+
+            <!-- 붙여넣은 이미지 미리보기 -->
+            <div id="stage5-pasted-preview" class="hidden w-full flex flex-col items-center gap-2">
+              <img id="stage5-preview-img" src="" alt="마스터 엠블럼" class="max-h-36 rounded-xl shadow-md border-2 border-purple-300 object-contain">
+              <span class="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                <i class="fa-solid fa-circle-check"></i> 엠블럼 이미지 붙여넣기 성공!
+              </span>
+            </div>
+          </div>
+
+          <!-- 이름 입력 폼 -->
+          <div class="flex flex-col gap-1.5">
+            <label for="stage5-username" class="text-xs font-extrabold text-slate-700 flex items-center gap-1">
+              <i class="fa-solid fa-user-pen text-purple-600"></i> 마스터 카드에 새길 본인 이름:
+            </label>
+            <div class="flex gap-2">
+              <input type="text" id="stage5-username" placeholder="예: 김단축, 마스터 철수" maxlength="15"
+                class="flex-1 bg-white border-2 border-slate-200 focus:border-purple-500 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 outline-none transition">
+              <button onclick="completeStage5()" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-black text-sm rounded-xl shadow transition flex items-center gap-1.5">
+                <span>카드 완성!</span>
+                <i class="fa-solid fa-check"></i>
+              </button>
+            </div>
+          </div>
+
+          <div id="stage5-tip" class="p-3 bg-purple-50/80 rounded-xl text-xs text-purple-900 border border-purple-100 flex items-start gap-2">
+            <i class="fa-solid fa-lightbulb text-amber-500 mt-0.5"></i>
+            <div>
+              <strong>완성 팁:</strong> 엠블럼 이미지를 액자에 <kbd class="bg-white px-1 rounded border font-bold">Ctrl + V</kbd> 로 넣고, 본인 이름을 적은 후 <strong>[카드 완성!]</strong> 버튼을 누르면 인쇄 및 다운로드가 가능한 정식 카드가 발급됩니다!
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 윈도우 단축키 핵심 요약 카드 -->
+    <section class="bg-white rounded-3xl p-6 shadow-sm border border-purple-100">
+      <h3 class="text-lg font-black text-slate-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-book-bookmark text-purple-600"></i>
+        한눈에 쏙 들어오는 윈도우즈 필수 단축키 백과사전
+      </h3>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-center">
+          <span class="text-xs font-extrabold text-purple-700 block">복사하기</span>
+          <span class="text-sm font-black text-slate-800">Ctrl + C</span>
+          <p class="text-[11px] text-slate-500 mt-1">Copy(복사)의 C!</p>
+        </div>
+        <div class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-center">
+          <span class="text-xs font-extrabold text-purple-700 block">붙여넣기</span>
+          <span class="text-sm font-black text-slate-800">Ctrl + V</span>
+          <p class="text-[11px] text-slate-500 mt-1">도장 꾹 찍기!</p>
+        </div>
+        <div class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-center">
+          <span class="text-xs font-extrabold text-purple-700 block">잘라내기</span>
+          <span class="text-sm font-black text-slate-800">Ctrl + X</span>
+          <p class="text-[11px] text-slate-500 mt-1">가위 모양 X!</p>
+        </div>
+        <div class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-center">
+          <span class="text-xs font-extrabold text-purple-700 block">모두 선택</span>
+          <span class="text-sm font-black text-slate-800">Ctrl + A</span>
+          <p class="text-[11px] text-slate-500 mt-1">All(전부)의 A!</p>
+        </div>
+        <div class="p-3 bg-purple-50/60 rounded-2xl border border-purple-100 text-center">
+          <span class="text-xs font-extrabold text-purple-700 block">되돌리기</span>
+          <span class="text-sm font-black text-slate-800">Ctrl + Z</span>
+          <p class="text-[11px] text-slate-500 mt-1">마법의 타임머신!</p>
+        </div>
+        <div class="p-3 bg-pink-50 rounded-2xl border border-pink-200 text-center">
+          <span class="text-xs font-extrabold text-pink-700 block">화면 캡처</span>
+          <span class="text-xs font-black text-slate-800">Win+Shift+S / PrtScn</span>
+          <p class="text-[11px] text-slate-500 mt-1">화면을 찰칵 저장!</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 미션 성공 축하 칭찬 팝업 모달 -->
+  <div id="congratsModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border-4 border-[#eecef3] transform transition-all text-center flex flex-col items-center">
+      <div id="modalEmoji" class="text-6xl mb-3 animate-bounce">🎉</div>
+      <span id="modalSubTitle" class="text-xs font-black text-purple-600 bg-purple-100 px-3 py-1 rounded-full mb-2">미션 완료!</span>
+      <h3 id="modalTitle" class="text-2xl font-black text-slate-800 mb-2">참 잘했어요! 훌륭해요!</h3>
+      
+      <div id="modalSummary" class="bg-purple-50/70 p-4 rounded-2xl border border-purple-100 text-xs sm:text-sm text-slate-700 leading-relaxed mb-6 w-full text-left">
+      </div>
+
+      <div class="flex gap-3 w-full">
+        <button onclick="closeModalAndNext()" class="flex-1 py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-black rounded-2xl shadow-lg shadow-purple-200 transition transform active:scale-95 flex items-center justify-center gap-2">
+          <span id="modalNextBtnText">다음 미션으로 가기</span>
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 최종 수료증 모달 -->
+  <div id="certificateModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border-8 border-yellow-200 text-center relative overflow-hidden">
+      <div class="w-16 h-16 mx-auto bg-amber-400 rounded-full flex items-center justify-center text-white text-3xl shadow-lg mb-3">
+        <i class="fa-solid fa-award"></i>
+      </div>
+      <span class="text-xs font-black tracking-widest text-amber-800 uppercase bg-amber-100 px-3 py-1 rounded-full">공식 인증 수료증</span>
+      <h3 class="text-2xl sm:text-3xl font-black text-slate-900 mt-2 mb-1">윈도우즈 단축키 마스터</h3>
+      <p class="text-xs text-slate-500 mb-6">모든 미션을 훌륭하게 완수한 당신을 컴퓨터 단축키 달인으로 임명합니다!</p>
+
+      <div id="certCardContainer" class="bg-gradient-to-r from-purple-700 via-pink-600 to-indigo-700 p-1 rounded-2xl shadow-xl mb-6 text-white text-left">
+        <div class="bg-slate-900/90 rounded-[14px] p-5 flex flex-col sm:flex-row items-center gap-4">
+          <img id="certUserBadgeImg" src="" alt="인증 뱃지" class="w-24 h-24 rounded-xl border-2 border-yellow-400 object-cover shadow bg-slate-800">
+          <div class="flex-1 text-center sm:text-left">
+            <div class="text-[10px] font-bold text-amber-300 tracking-wider">WINDOWS SHORTCUT MASTER PASS</div>
+            <h4 id="certMasterName" class="text-xl font-black text-white mt-0.5">이름: 멋진 단축키 탐험가</h4>
+            <p class="text-xs text-purple-200 mt-1">공인 취득 등급: <strong>1급 마스터 (전 과정 수료)</strong></p>
+            <div class="mt-2 text-[10px] text-slate-400 flex flex-wrap gap-2">
+              <span class="bg-white/10 px-2 py-0.5 rounded">Ctrl+C/V</span>
+              <span class="bg-white/10 px-2 py-0.5 rounded">Ctrl+X</span>
+              <span class="bg-white/10 px-2 py-0.5 rounded">Ctrl+A</span>
+              <span class="bg-white/10 px-2 py-0.5 rounded">Ctrl+Z</span>
+              <span class="bg-white/10 px-2 py-0.5 rounded">Win+Shift+S</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-amber-50/60 p-4 rounded-2xl border border-amber-200 text-left text-xs space-y-2 mb-6 text-slate-700 font-medium">
+        <div class="flex justify-between"><span>수료자:</span> <span id="certRecipient" class="font-bold text-slate-900">멋진 단축키 탐험가</span></div>
+        <div class="flex justify-between"><span>마스터한 기능:</span> <span class="font-bold text-purple-700">복사, 붙여넣기, 잘라내기, 전체선택, 되돌리기, 화면캡처</span></div>
+        <div class="flex justify-between"><span>발급일자:</span> <span id="certDate" class="font-bold"></span></div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button onclick="window.print()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold rounded-2xl transition flex items-center justify-center gap-1.5 text-sm">
+          <i class="fa-solid fa-print"></i> 마스터 카드 인쇄 / PDF 저장
+        </button>
+        <button onclick="closeCertificate()" class="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-2xl transition text-sm">
+          처음부터 다시 연습하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 앱 전역 상태 관리
+    // ==========================================
+    const APP_STATE = {
+      currentMission: 1,
+      soundEnabled: true,
+      virtualClipboard: {
+        type: null, // 'text' | 'object' | 'image'
+        content: null
+      },
+      completedMissions: {
+        1: false,
+        2: false,
+        3: false,
+        4: false,
+        5: false
+      },
+      stage2: {
+        selectedElement: null,
+        selectedType: null,
+        isTargetSelected: false, // 잔디 놀이터 선택 여부 플래그
+        pastedTypes: new Set() // 'rabbit', 'bear', 'cat' 관리
+      },
+      stage4: {
+        step: 1, // 1: Ctrl+A 대기, 2: Del 대기, 3: Ctrl+Z 대기
+        isAllSelected: false,
+        isDeleted: false,
+        isRestored: false
+      },
+      stage5: {
+        badgeImage: null,
+        userName: ''
+      }
+    };
+
+    // 로컬 스토리지 불러오기 및 저장
+    function loadSavedState() {
+      try {
+        const saved = localStorage.getItem('win_shortcut_progress');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          APP_STATE.completedMissions = parsed.completedMissions || APP_STATE.completedMissions;
+          if (parsed.userName) {
+            APP_STATE.stage5.userName = parsed.userName;
+            const input = document.getElementById('stage5-username');
+            if (input) input.value = parsed.userName;
+          }
+          updateTabBadges();
+        }
+      } catch (e) {
+        console.warn('LocalStorage error:', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem('win_shortcut_progress', JSON.stringify({
+          completedMissions: APP_STATE.completedMissions,
+          userName: APP_STATE.stage5.userName
+        }));
+      } catch (e) {
+        console.warn('LocalStorage save error:', e);
+      }
+    }
+
+    // Tone.js 기반 효과음
+    let synth = null;
+
+    function initAudio() {
+      if (!synth && typeof Tone !== 'undefined') {
+        try {
+          synth = new Tone.PolySynth(Tone.Synth).toDestination();
+          synth.volume.value = -6;
+        } catch (e) {
+          console.warn('Audio init error:', e);
+        }
+      }
+    }
+
+    function playSound(type) {
+      if (!APP_STATE.soundEnabled) return;
+      try {
+        initAudio();
+        if (Tone && Tone.context && Tone.context.state !== 'running') {
+          Tone.start();
+        }
+        if (!synth) return;
+
+        const now = Tone.now();
+        switch (type) {
+          case 'key':
+            synth.triggerAttackRelease('C5', '32n', now);
+            break;
+          case 'copy':
+            synth.triggerAttackRelease(['E5', 'G5'], '16n', now);
+            break;
+          case 'paste':
+            synth.triggerAttackRelease(['G5', 'C6'], '16n', now);
+            break;
+          case 'cut':
+            synth.triggerAttackRelease(['F5', 'D5'], '16n', now);
+            break;
+          case 'success':
+            synth.triggerAttackRelease(['C5', 'E5', 'G5', 'C6'], '8n', now);
+            break;
+          case 'error':
+            synth.triggerAttackRelease(['D4', 'C4'], '16n', now);
+            break;
+        }
+      } catch (e) {
+        // 음원 예외 무시
+      }
+    }
+
+    function toggleSound() {
+      APP_STATE.soundEnabled = !APP_STATE.soundEnabled;
+      const icon = document.getElementById('soundIcon');
+      const text = document.getElementById('soundText');
+      if (APP_STATE.soundEnabled) {
+        icon.className = 'fa-solid fa-volume-high text-purple-600';
+        text.innerText = '소리 켬';
+        playSound('key');
+      } else {
+        icon.className = 'fa-solid fa-volume-xmark text-slate-400';
+        text.innerText = '소리 끔';
+      }
+    }
+
+    // 키보드 HUD 시각화 요소
+    const KEY_ELEMENTS = {
+      'ctrl': document.getElementById('vkey-ctrl'),
+      'c': document.getElementById('vkey-c'),
+      'v': document.getElementById('vkey-v'),
+      'x': document.getElementById('vkey-x'),
+      'a': document.getElementById('vkey-a'),
+      'z': document.getElementById('vkey-z'),
+      'del': document.getElementById('vkey-del'),
+      'win': document.getElementById('vkey-win'),
+      'shift': document.getElementById('vkey-shift'),
+      's': document.getElementById('vkey-s'),
+      'prt': document.getElementById('vkey-prt')
+    };
+
+    function highlightKey(key) {
+      const el = KEY_ELEMENTS[key.toLowerCase()];
+      if (el) {
+        el.classList.add('active');
+        setTimeout(() => el.classList.remove('active'), 250);
+      }
+    }
+
+    // 안전한 폴백 함수 (참조 에러 방지용)
+    function simulateHotkey(key) {
+      if (key) {
+        const parts = key.toLowerCase().split('+');
+        parts.forEach(p => highlightKey(p));
+      }
+    }
+
+    // 스테이지별 단축키 통합 처리기 (오류 해결 핵심 함수)
+    function handleStageSpecificKeydown(e) {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      // [미션 1] 글자 복사 및 붙여넣기
+      if (APP_STATE.currentMission === 1) {
+        if (isCtrlOrMeta && key === 'c') {
+          const isCopied = attemptStage1Copy();
+          if (!isCopied) {
+            // 블록이 지정되지 않은 경우 복사 방지
+            e.preventDefault();
+          }
+        }
+        if (isCtrlOrMeta && key === 'v') {
+          setTimeout(() => checkStage1(), 100);
+        }
+      }
+
+      // [미션 2] 객체 복사 및 붙여넣기
+      else if (APP_STATE.currentMission === 2) {
+        if (isCtrlOrMeta && key === 'c') {
+          if (APP_STATE.stage2.selectedElement) {
+            APP_STATE.virtualClipboard.type = 'object';
+            APP_STATE.virtualClipboard.content = APP_STATE.stage2.selectedType;
+            playSound('copy');
+            const nameMap = { rabbit: '마법 토끼 🐰', bear: '아기 곰 🐻', cat: '노랑 고양이 🐱' };
+            showMiniBadge(`${nameMap[APP_STATE.stage2.selectedType]} 복사 완료! 잔디밭을 누르고 Ctrl+V를 누르세요.`);
+          } else {
+            showCustomNotice("선택 필요", "먼저 대기실의 동물 친구를 마우스로 클릭해 선택해주세요!");
+          }
+        } else if (isCtrlOrMeta && key === 'v') {
+          pasteStage2Object();
+        }
+      }
+
+      // [미션 3] 글자 잘라내기 및 붙여넣기
+      else if (APP_STATE.currentMission === 3) {
+        if (isCtrlOrMeta && key === 'x') {
+          e.preventDefault();
+          attemptStage3Cut();
+        } else if (isCtrlOrMeta && key === 'v') {
+          e.preventDefault();
+          pasteStage3Text();
+        }
+      }
+
+      // [미션 4] 전체선택(Ctrl+A) -> 삭제(Del) -> 되돌리기(Ctrl+Z)
+      else if (APP_STATE.currentMission === 4) {
+        if (isCtrlOrMeta && key === 'a') {
+          // 브라우저 기본 전체선택 방지
+          const activeTag = document.activeElement ? document.activeElement.tagName : '';
+          if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            e.preventDefault();
+            selectFarmAll();
+          }
+        } else if (e.key === 'Delete' || e.key === 'Backspace') {
+          const activeTag = document.activeElement ? document.activeElement.tagName : '';
+          if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            if (APP_STATE.stage4.isAllSelected && !APP_STATE.stage4.isDeleted) {
+              e.preventDefault();
+              deleteFarmAll();
+            }
+          }
+        } else if (isCtrlOrMeta && key === 'z') {
+          const activeTag = document.activeElement ? document.activeElement.tagName : '';
+          if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
+            if (APP_STATE.stage4.isDeleted && !APP_STATE.stage4.isRestored) {
+              e.preventDefault();
+              restoreFarmAll();
+            }
+          }
+        }
+      }
+
+      // [미션 5] 화면 캡처(Win+Shift+S 또는 PrintScreen) 및 붙여넣기(Ctrl+V)
+      else if (APP_STATE.currentMission === 5) {
+        // PrintScreen 또는 Win+Shift+S (또는 OS에 따라 Ctrl+Shift+S) 키 입력 감지
+        const isPrintScreenKey = e.key === 'PrintScreen' || e.code === 'PrintScreen';
+        const isCaptureShortcut = (e.metaKey || e.ctrlKey) && e.shiftKey && (key === 's');
+
+        if (isPrintScreenKey || isCaptureShortcut) {
+          e.preventDefault();
+          highlightKey('prt');
+          highlightKey('shift');
+          highlightKey('s');
+          if (e.metaKey) highlightKey('win');
+          captureMasterBadge();
+          return;
+        }
+
+        if (isCtrlOrMeta && key === 'v') {
+          if (APP_STATE.virtualClipboard.type === 'image' && APP_STATE.virtualClipboard.content) {
+            applyPastedBadgeImage(APP_STATE.virtualClipboard.content);
+          }
+        }
+      }
+    }
+
+    // 전역 키 이벤트 리스너
+    window.addEventListener('keydown', (e) => {
+      // 5단계 이름 입력창 등 일반 텍스트 타이핑 시에는 소리가 나지 않도록 판별
+      const isTypingName = e.target && e.target.id === 'stage5-username';
+      const isInputFocused = e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA');
+
+      if (e.key === 'Control' || e.ctrlKey) {
+        KEY_ELEMENTS['ctrl']?.classList.add('active');
+      }
+      if (e.key === 'Meta' || e.metaKey) {
+        KEY_ELEMENTS['win']?.classList.add('active');
+      }
+      if (e.key === 'Shift' || e.shiftKey) {
+        KEY_ELEMENTS['shift']?.classList.add('active');
+      }
+
+      const keyLower = e.key.toLowerCase();
+      if (['c', 'v', 'x', 'a', 'z', 's'].includes(keyLower)) {
+        highlightKey(keyLower);
+      }
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (!isInputFocused) highlightKey('del');
+      }
+      if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+        highlightKey('prt');
+      }
+
+      // 이름 입력 중이거나 일반 텍스트 입력창에서 단축키가 아닌 일반 글쇠를 누를 때는 사운드 생략
+      if (!isTypingName && (!isInputFocused || e.ctrlKey || e.metaKey)) {
+        playSound('key');
+      }
+
+      handleStageSpecificKeydown(e);
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Control' || !e.ctrlKey) {
+        KEY_ELEMENTS['ctrl']?.classList.remove('active');
+      }
+      if (e.key === 'Meta' || !e.metaKey) {
+        KEY_ELEMENTS['win']?.classList.remove('active');
+      }
+      if (e.key === 'Shift' || !e.shiftKey) {
+        KEY_ELEMENTS['shift']?.classList.remove('active');
+      }
+    });
+
+    // [미션 1 로직]
+    function autoSelectText(id) {
+      const textarea = document.getElementById(id);
+      if (textarea) {
+        textarea.focus();
+        textarea.select();
+        updateStage1SelectStatus();
+        playSound('key');
+        showMiniBadge("주문 글자가 블록으로 잡혔습니다! 이제 Ctrl + C 를 누르세요.");
+      }
+    }
+
+    // 미션 1 메모장 선택(블록) 상태 검사 함수
+    function getStage1SelectedText() {
+      const textarea = document.getElementById('stage1-source');
+      if (!textarea) return '';
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+        return textarea.value.substring(start, end).trim();
+      }
+      return '';
+    }
+
+    // 시스템 클립보드 안전 복사 헬퍼
+    function setSystemClipboard(text) {
+      try {
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.focus();
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+      } catch (err) {
+        // Fallback
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).catch(() => {});
+      }
+    }
+
+    function updateStage1SelectStatus() {
+      const badge = document.getElementById('stage1-select-badge');
+      const selected = getStage1SelectedText();
+      if (badge) {
+        if (selected.length > 0) {
+          badge.textContent = `블록 선택됨 (${selected.length}자)`;
+          badge.className = "font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[11px]";
+        } else {
+          badge.textContent = "선택 대기 중";
+          badge.className = "font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded text-[11px]";
+        }
+      }
+    }
+
+    function attemptStage1Copy() {
+      const selectedText = getStage1SelectedText();
+      const textarea = document.getElementById('stage1-source');
+
+      if (!selectedText || selectedText.length === 0) {
+        // 블록 미지정 시: 복사 거부 및 안내
+        playSound('error');
+        if (textarea) {
+          textarea.focus();
+          textarea.classList.add('ring-4', 'ring-rose-400');
+          setTimeout(() => textarea.classList.remove('ring-4', 'ring-rose-400'), 1000);
+        }
+        showCustomNotice("선택 필요", "먼저 메모장의 주문 글씨를 마우스로 쭉 드래그(블록 지정)해주세요!");
+        const fb = document.getElementById('stage1-feedback');
+        if (fb) {
+          fb.innerHTML = `<span class="text-rose-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 글자가 블록으로 선택되지 않았어요! 마우스로 글자를 파랗게 잡은 뒤 Ctrl+C를 누르세요.</span>`;
+          fb.className = "p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2";
+        }
+        return false;
+      }
+
+      // 블록 지정 완료 시 정상 복사 진행
+      playSound('copy');
+      APP_STATE.virtualClipboard.type = 'text';
+      APP_STATE.virtualClipboard.content = selectedText;
+      updateStage1SelectStatus();
+
+      const fb = document.getElementById('stage1-feedback');
+      if (fb) {
+        fb.innerHTML = `<span class="text-purple-700 font-bold"><i class="fa-solid fa-circle-check"></i> '${selectedText.substring(0, 10)}...' 주문 복사 완료! 금고 입력창에 Ctrl + V 로 붙여넣으세요.</span>`;
+        fb.className = "p-3.5 rounded-xl bg-purple-50 border border-purple-200 text-xs text-purple-800 flex items-center gap-2";
+      }
+      showMiniBadge("주문이 클립보드에 복사되었습니다! 금고에 붙여넣으세요.");
+      return true;
+    }
+
+    function checkStage1(skipInputSet) {
+      const targetInput = document.getElementById('stage1-target');
+      const val = targetInput.value.trim();
+      const answer = "⭐ 열려라 참깨! 윈도우 단축키 대장정 ⭐";
+
+      if (val === answer || val.includes("열려라 참깨")) {
+        const fb = document.getElementById('stage1-feedback');
+        fb.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> 정답입니다! 마법 금고가 활짝 열렸습니다!</span>`;
+        fb.className = "p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2";
+
+        if (!APP_STATE.completedMissions[1]) {
+          setTimeout(() => {
+            completeMission(1, {
+              title: "마법 주문 복사 성공! 🎉",
+              summary: "📋 <strong>Ctrl + C</strong> 로 글자를 기억(복사)하고,<br>📌 <strong>Ctrl + V</strong> 로 원하는 곳에 도장 찍듯 붙여넣었습니다!<br>컴퓨터에서 가장 많이 쓰는 두 단축키를 완벽하게 마스터하셨어요!"
+            });
+          }, 300);
+        }
+      } else if (val.length > 0) {
+        const fb = document.getElementById('stage1-feedback');
+        fb.innerHTML = `<span class="text-rose-600 font-bold"><i class="fa-solid fa-circle-xmark"></i> 주문이 조금 달라요! 메모장의 주문을 그대로 복사해서 붙여넣어 보세요.</span>`;
+        playSound('error');
+      }
+    }
+
+    // [미션 2 로직]
+    function selectStage2Object(type, element) {
+      document.querySelectorAll('#char-rabbit, #char-bear, #char-cat').forEach(el => {
+        el.classList.remove('selected-object');
+        el.classList.remove('border-purple-500');
+      });
+
+      element.classList.add('selected-object', 'border-purple-500');
+      APP_STATE.stage2.selectedElement = element;
+      APP_STATE.stage2.selectedType = type;
+      
+      // 대기실에서 새 동물을 고르면 잔디밭 선택 상태를 해제하여 다시 잔디밭을 클릭하도록 유도
+      APP_STATE.stage2.isTargetSelected = false;
+      const targetContainer = document.getElementById('stage2-target-container');
+      targetContainer?.classList.remove('ring-4', 'ring-emerald-400', 'border-emerald-500', 'bg-emerald-50/60');
+      
+      const targetBadge = document.getElementById('stage2-target-badge');
+      if (targetBadge) {
+        targetBadge.innerText = "잔디밭 선택 대기";
+        targetBadge.className = "text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md";
+      }
+
+      playSound('key');
+
+      const nameMap = { rabbit: '마법 토끼 🐰', bear: '아기 곰 🐻', cat: '노랑 고양이 🐱' };
+      const status = document.getElementById('stage2-select-status');
+      status.innerHTML = `<strong class="text-purple-700">${nameMap[type]}</strong>가 선택되었습니다! 이제 키보드의 <strong>Ctrl + C</strong> 를 눌러 복사하세요!`;
+    }
+
+    function focusStage2Playground() {
+      APP_STATE.stage2.isTargetSelected = true;
+      const container = document.getElementById('stage2-target-container');
+      container?.focus();
+      container?.classList.add('ring-4', 'ring-emerald-400', 'border-emerald-500', 'bg-emerald-50/60');
+
+      const targetBadge = document.getElementById('stage2-target-badge');
+      if (targetBadge) {
+        targetBadge.innerText = "✓ 잔디밭 선택됨 (Ctrl+V 대기)";
+        targetBadge.className = "text-xs bg-emerald-500 text-white font-bold px-2 py-0.5 rounded-md animate-pulse";
+      }
+
+      playSound('key');
+
+      const status = document.getElementById('stage2-select-status');
+      if (status && APP_STATE.virtualClipboard.type === 'object') {
+        const nameMap = { rabbit: '마법 토끼 🐰', bear: '아기 곰 🐻', cat: '노랑 고양이 🐱' };
+        status.innerHTML = `🌱 잔디밭이 선택되었습니다! 이제 <strong>Ctrl + V</strong> 를 눌러 ${nameMap[APP_STATE.virtualClipboard.content] || '동물'}을(를) 데려오세요!`;
+      }
+    }
+
+    function updateStage2Checklist() {
+      const badgeMap = {
+        rabbit: document.getElementById('stat-rabbit'),
+        bear: document.getElementById('stat-bear'),
+        cat: document.getElementById('stat-cat')
+      };
+      const labelMap = { rabbit: '🐰 토끼', bear: '🐻 곰', cat: '🐱 고양이' };
+
+      ['rabbit', 'bear', 'cat'].forEach(key => {
+        const el = badgeMap[key];
+        if (!el) return;
+        if (APP_STATE.stage2.pastedTypes.has(key)) {
+          el.className = "px-2 py-0.5 rounded-md font-bold bg-emerald-100 text-emerald-700 border border-emerald-300";
+          el.innerText = `${labelMap[key]} ✓`;
+        } else {
+          el.className = "px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200";
+          el.innerText = `${labelMap[key]} ✕`;
+        }
+      });
+
+      const countEl = document.getElementById('stage2-unique-count');
+      if (countEl) countEl.innerText = APP_STATE.stage2.pastedTypes.size;
+    }
+
+    function pasteStage2Object() {
+      // 1. 가상 클립보드 복사 여부 검사
+      if (APP_STATE.virtualClipboard.type !== 'object' || !APP_STATE.virtualClipboard.content) {
+        playSound('error');
+        showCustomNotice("클립보드 비어있음", "먼저 대기실에서 동물 친구를 클릭하고 Ctrl + C 로 복사해주세요!");
+        return;
+      }
+
+      const container = document.getElementById('stage2-target-container');
+
+      // 2. 사용자가 잔디밭 구역을 클릭하여 활성화했는지 검사
+      const isActuallyFocused = document.activeElement === container || container?.contains(document.activeElement);
+      if (!APP_STATE.stage2.isTargetSelected && !isActuallyFocused) {
+        playSound('error');
+        if (container) {
+          container.classList.add('ring-4', 'ring-rose-400');
+          setTimeout(() => container.classList.remove('ring-4', 'ring-rose-400'), 1000);
+        }
+        const targetBadge = document.getElementById('stage2-target-badge');
+        if (targetBadge) {
+          targetBadge.innerText = "⚠️ 잔디밭을 먼저 클릭하세요!";
+          targetBadge.className = "text-xs bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-md";
+        }
+        showCustomNotice("붙여넣기 구역 미선택", "동물을 붙여넣을 오른쪽 [잔디 놀이터]를 먼저 마우스로 콕 클릭하여 선택해주세요!");
+        return;
+      }
+
+      const type = APP_STATE.virtualClipboard.content;
+      const placeholder = document.getElementById('stage2-empty-placeholder');
+      if (placeholder) placeholder.remove();
+
+      const emojiMap = { rabbit: '🐰', bear: '🐻', cat: '🐱' };
+      const nameMap = { rabbit: '마법 토끼', bear: '아기 곰', cat: '노랑 고양이' };
+
+      const item = document.createElement('div');
+      item.className = "bg-white border-2 border-emerald-300 rounded-xl p-2.5 flex flex-col items-center shadow-sm transform hover:scale-105 transition animate-bounce";
+      item.innerHTML = `<span class="text-3xl">${emojiMap[type]}</span><span class="text-[10px] font-bold text-slate-700 mt-1">${nameMap[type]} (복제)</span>`;
+      container.appendChild(item);
+
+      setTimeout(() => item.classList.remove('animate-bounce'), 400);
+      playSound('paste');
+
+      const isFirstOfThisType = !APP_STATE.stage2.pastedTypes.has(type);
+      APP_STATE.stage2.pastedTypes.add(type);
+      updateStage2Checklist();
+
+      // 세 종류의 동물 친구가 모두 모였는지 엄격하게 검사
+      if (APP_STATE.stage2.pastedTypes.size >= 3) {
+        if (!APP_STATE.completedMissions[2]) {
+          setTimeout(() => {
+            completeMission(2, {
+              title: "동물 친구 3총사 복사 대성공! 🐰🐻🐱",
+              summary: "🖼️ <strong>서로 다른 동물 캐릭터들</strong>을 각각 마우스로 선택한 뒤 <strong>Ctrl + C</strong> 로 복사하고, <strong>잔디밭을 클릭하여 지정한 후 Ctrl + V</strong> 로 잔디밭에 모두 초대했습니다!<br>이제 그림이나 개체도 능숙하게 원하는 위치에 복사할 수 있어요!"
+            });
+          }, 350);
+        }
+      } else {
+        if (isFirstOfThisType) {
+          showMiniBadge(`${nameMap[type]} 초대 완료! 이제 남은 다른 친구도 복사해 보세요. (${APP_STATE.stage2.pastedTypes.size}/3)`);
+        } else {
+          showMiniBadge(`${nameMap[type]}는 이미 놀이터에 있어요! 아직 오지 않은 다른 동물 친구도 복사해 주세요.`);
+        }
+      }
+    }
+
+    function resetStage2() {
+      APP_STATE.stage2.pastedTypes.clear();
+      APP_STATE.stage2.selectedElement = null;
+      APP_STATE.stage2.selectedType = null;
+      APP_STATE.stage2.isTargetSelected = false;
+
+      document.querySelectorAll('#char-rabbit, #char-bear, #char-cat').forEach(el => {
+        el.classList.remove('selected-object');
+        el.classList.remove('border-purple-500');
+      });
+
+      const container = document.getElementById('stage2-target-container');
+      container.classList.remove('ring-4', 'ring-emerald-400', 'border-emerald-500', 'bg-emerald-50/60');
+      container.innerHTML = `
+        <div id="stage2-empty-placeholder" class="col-span-full text-center text-slate-400 text-xs py-8 pointer-events-none">
+          <i class="fa-solid fa-sparkles text-2xl text-emerald-300 block mb-2"></i>
+          이 잔디밭을 클릭하고 <kbd class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">Ctrl + V</kbd> 로 3마리 친구를 모두 모아주세요!
+        </div>
+      `;
+      
+      const targetBadge = document.getElementById('stage2-target-badge');
+      if (targetBadge) {
+        targetBadge.innerText = "잔디밭 선택 대기";
+        targetBadge.className = "text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-md";
+      }
+
+      const badgeMap = {
+        rabbit: document.getElementById('stat-rabbit'),
+        bear: document.getElementById('stat-bear'),
+        cat: document.getElementById('stat-cat')
+      };
+      if (badgeMap.rabbit) {
+        badgeMap.rabbit.className = "px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200";
+        badgeMap.rabbit.innerText = "🐰 토끼 ✕";
+      }
+      if (badgeMap.bear) {
+        badgeMap.bear.className = "px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200";
+        badgeMap.bear.innerText = "🐻 곰 ✕";
+      }
+      if (badgeMap.cat) {
+        badgeMap.cat.className = "px-2 py-0.5 rounded-md font-bold bg-slate-100 text-slate-400 border border-slate-200";
+        badgeMap.cat.innerText = "🐱 고양이 ✕";
+      }
+
+      const countEl = document.getElementById('stage2-unique-count');
+      if (countEl) countEl.innerText = '0';
+
+      const status = document.getElementById('stage2-select-status');
+      if (status) status.innerText = '동물을 마우스로 콕 클릭하여 선택해주세요.';
+
+      showMiniBadge("놀이터가 초기화되었습니다.");
+    }
+
+    // [미션 3 로직]
+    function selectStage3Watermelon() {
+      const src = document.getElementById('stage3-source');
+      if (!src) return;
+      src.focus();
+      // "엉뚱한 수박 🍉" 또는 "수박 🍉" 위치 지정 선택
+      const fullText = src.value;
+      let targetText = "엉뚱한 수박 🍉";
+      let start = fullText.indexOf(targetText);
+      if (start === -1) {
+        targetText = "수박 🍉";
+        start = fullText.indexOf(targetText);
+      }
+      if (start !== -1) {
+        src.setSelectionRange(start, start + targetText.length);
+        updateStage3SelectStatus();
+      }
+      playSound('key');
+      showMiniBadge("수박 글자가 잡혔어요! 가위 단축키 Ctrl + X 를 누르세요.");
+    }
+
+    // 미션 3 메모장 선택(블록) 상태 검사 함수
+    function getStage3SelectedText() {
+      const textarea = document.getElementById('stage3-source');
+      if (!textarea) return '';
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      if (typeof start === 'number' && typeof end === 'number' && start !== end) {
+        return textarea.value.substring(start, end).trim();
+      }
+      return '';
+    }
+
+    function updateStage3SelectStatus() {
+      const badge = document.getElementById('stage3-select-badge');
+      const selected = getStage3SelectedText();
+      if (badge) {
+        if (selected.length > 0) {
+          badge.textContent = `블록 선택됨 (${selected.length}자)`;
+          badge.className = "font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded text-[11px]";
+        } else {
+          badge.textContent = "선택 대기 중";
+          badge.className = "font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded text-[11px]";
+        }
+      }
+    }
+
+    // 반드시 블록이 지정되어야만 잘라내기 실행
+    function attemptStage3Cut() {
+      const selectedText = getStage3SelectedText();
+      const src = document.getElementById('stage3-source');
+
+      // 1. 블록을 잡지 않은 경우 차단
+      if (!selectedText || selectedText.length === 0) {
+        playSound('error');
+        if (src) {
+          src.focus();
+          src.classList.add('ring-4', 'ring-rose-400');
+          setTimeout(() => src.classList.remove('ring-4', 'ring-rose-400'), 1000);
+        }
+        showCustomNotice("선택 필요", "먼저 사과 바구니에서 '수박 🍉' 글씨를 마우스로 쭉 드래그(블록 지정)해주세요!");
+        const fb = document.getElementById('stage3-feedback');
+        if (fb) {
+          fb.innerHTML = `<span class="text-rose-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 글자가 블록으로 선택되지 않았어요! 수박 글자를 마우스로 파랗게 잡은 뒤 Ctrl+X를 누르세요.</span>`;
+          fb.className = "p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2";
+        }
+        return false;
+      }
+
+      // 2. 수박이 아닌 엉뚱한 글자(사과 등)를 블록 잡은 경우 안내
+      if (!selectedText.includes("수박")) {
+        playSound('error');
+        if (src) {
+          src.focus();
+          src.classList.add('ring-4', 'ring-amber-400');
+          setTimeout(() => src.classList.remove('ring-4', 'ring-amber-400'), 1000);
+        }
+        showCustomNotice("선택 오류", "사과는 남겨두고, 엉뚱하게 들어간 '수박 🍉' 글자만 드래그해서 잘라내주세요!");
+        const fb = document.getElementById('stage3-feedback');
+        if (fb) {
+          fb.innerHTML = `<span class="text-amber-700 font-bold"><i class="fa-solid fa-circle-exclamation"></i> 사과는 사과 바구니에 남겨두고 '수박 🍉' 글자만 쏙 잡아서 잘라내야 해요!</span>`;
+          fb.className = "p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-center gap-2";
+        }
+        return false;
+      }
+
+      // 3. 정상 선택 시: 사용자가 실제로 선택한 텍스트 그대로 원본에서 잘라내어 클립보드에 저장
+      const start = src.selectionStart;
+      const end = src.selectionEnd;
+      const originalVal = src.value;
+      
+      const before = originalVal.substring(0, start);
+      const after = originalVal.substring(end);
+      src.value = (before + after).replace(/\n\s*\n/g, '\n').trim();
+
+      APP_STATE.virtualClipboard.type = 'text';
+      APP_STATE.virtualClipboard.content = selectedText;
+      setSystemClipboard(selectedText);
+      updateStage3SelectStatus();
+      playSound('cut');
+
+      const fb = document.getElementById('stage3-feedback');
+      if (fb) {
+        fb.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-scissors"></i> '${selectedText}'(을)를 싹둑 잘라냈어요! 이제 수박 바구니를 누르고 Ctrl + V 로 붙여넣으세요.</span>`;
+        fb.className = "p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2";
+      }
+      showMiniBadge(`'${selectedText}' 잘라내기 완료! 수박 바구니에 붙여넣으세요.`);
+      return true;
+    }
+
+    function pasteStage3Text() {
+      const target = document.getElementById('stage3-target');
+      if (!target) return;
+
+      // 잘라낸 텍스트 원문(선택했던 '엉뚱한 수박 🍉' 등)을 그대로 대상에 주입
+      if (APP_STATE.virtualClipboard.type === 'text' && APP_STATE.virtualClipboard.content && APP_STATE.virtualClipboard.content.includes("수박")) {
+        target.value = APP_STATE.virtualClipboard.content;
+        target.focus();
+        playSound('paste');
+        checkStage3();
+      } else {
+        playSound('error');
+        showCustomNotice("클립보드 확인", "먼저 사과 바구니에서 '수박 🍉' 글씨를 블록 잡고 Ctrl + X 로 잘라내주세요!");
+        const fb = document.getElementById('stage3-feedback');
+        if (fb) {
+          fb.innerHTML = `<span class="text-rose-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> 아직 수박이 잘라내어지지 않았어요! 먼저 수박 글자를 Ctrl + X 로 잘라내세요.</span>`;
+          fb.className = "p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800 flex items-center gap-2";
+        }
+      }
+    }
+
+    function handleGlobalCut() {
+      if (APP_STATE.currentMission === 3) {
+        attemptStage3Cut();
+      } else {
+        showMiniBadge("잘라내기(Ctrl+X)는 미션 3에서 사용해보세요!");
+      }
+    }
+
+    function checkStage3() {
+      const target = document.getElementById('stage3-target');
+      const val = target.value.trim();
+
+      if (val.includes("수박")) {
+        const fb = document.getElementById('stage3-feedback');
+        fb.innerHTML = `<span class="text-emerald-700 font-bold"><i class="fa-solid fa-circle-check"></i> '${val}' 이(가) 바구니에 바르게 옮겨졌습니다!</span>`;
+
+        if (!APP_STATE.completedMissions[3]) {
+          setTimeout(() => {
+            completeMission(3, {
+              title: "글자 잘라내기 정복! 🍉",
+              summary: "✂️ <strong>Ctrl + X</strong> 는 원래 자리에 있던 내용을 싹둑 지우면서 복사하고,<br>📌 <strong>Ctrl + V</strong> 로 새 자리에 옮겨주는 마법의 이사 단축키입니다!"
+            });
+          }, 300);
+        }
+      } else {
+        playSound('error');
+        showCustomNotice("미완료", "수박 전용 바구니에 수박 글자를 Ctrl + V로 붙여넣어 주세요!");
+      }
+    }
+
+    function resetStage3() {
+      const src = document.getElementById('stage3-source');
+      src.value = "맛있는 빨간 사과 🍎\n엉뚱한 수박 🍉\n새콤달콤 꿀사과 🍏";
+      const target = document.getElementById('stage3-target');
+      target.value = "";
+      const fb = document.getElementById('stage3-feedback');
+      fb.innerHTML = `<i class="fa-solid fa-bell text-emerald-500"></i> 사과 바구니에서 수박을 잘라내어 이곳에 붙여넣어 보세요!`;
+      fb.className = "p-3.5 rounded-xl bg-white border border-emerald-100 text-xs text-slate-600 flex items-center gap-2";
+      updateStage3SelectStatus();
+      showMiniBadge("과일 바구니가 초기화되었습니다.");
+    }
+
+    // [미션 4 로직]
+    function focusStage4Farm() {
+      const farm = document.getElementById('stage4-farm-container');
+      farm?.focus();
+    }
+
+    function updateStep4Chips(step) {
+      APP_STATE.stage4.step = step;
+      const chip1 = document.getElementById('step4-chip-1');
+      const chip2 = document.getElementById('step4-chip-2');
+      const chip3 = document.getElementById('step4-chip-3');
+
+      chip1.className = step === 1 ? "py-2.5 px-3 rounded-xl bg-purple-600 text-white shadow-sm flex items-center justify-center gap-1.5" : "py-2.5 px-3 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center gap-1.5";
+      chip2.className = step === 2 ? "py-2.5 px-3 rounded-xl bg-red-600 text-white shadow-sm flex items-center justify-center gap-1.5" : (step > 2 ? "py-2.5 px-3 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center gap-1.5" : "py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center gap-1.5");
+      chip3.className = step === 3 ? "py-2.5 px-3 rounded-xl bg-indigo-600 text-white shadow-sm flex items-center justify-center gap-1.5" : (step > 3 ? "py-2.5 px-3 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center gap-1.5" : "py-2.5 px-3 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center gap-1.5");
+    }
+
+    function selectFarmAll() {
+      APP_STATE.stage4.isAllSelected = true;
+      document.querySelectorAll('.farm-animal').forEach(el => {
+        el.classList.add('selected-object', 'ring-4', 'ring-purple-400');
+      });
+      playSound('key');
+      updateStep4Chips(2);
+      document.getElementById('farm-guide-text').innerHTML = `👏 동물들이 모두 선택되었어요! 이제 <strong>Delete (또는 Backspace)</strong> 키를 눌러 싹 비워보세요!`;
+      showMiniBadge("전체 선택 완료! Delete 키를 누르세요.");
+    }
+
+    function deleteFarmAll() {
+      APP_STATE.stage4.isDeleted = true;
+      document.getElementById('farm-animals-box').classList.add('hidden');
+      document.getElementById('farm-empty-msg').classList.remove('hidden');
+      document.getElementById('farm-item-count').innerText = "동물 0마리 (비어있음)";
+      playSound('cut');
+      updateStep4Chips(3);
+      document.getElementById('farm-guide-text').innerHTML = `😱 동물들이 전부 사라졌어요! 걱정 말고 <strong>Ctrl + Z</strong> (타임머신 명령 취소)를 눌러 되돌리세요!`;
+      showMiniBadge("삭제 완료! 이제 Ctrl + Z로 되돌려보세요.");
+    }
+
+    function restoreFarmAll() {
+      APP_STATE.stage4.isRestored = true;
+      document.getElementById('farm-empty-msg').classList.add('hidden');
+      const box = document.getElementById('farm-animals-box');
+      box.classList.remove('hidden');
+      document.querySelectorAll('.farm-animal').forEach(el => {
+        el.classList.remove('selected-object', 'ring-4', 'ring-purple-400');
+      });
+      document.getElementById('farm-item-count').innerText = "동물 6마리 모두 복구됨! 🎉";
+      updateStep4Chips(4);
+      playSound('success');
+
+      if (!APP_STATE.completedMissions[4]) {
+        setTimeout(() => {
+          completeMission(4, {
+            title: "전체 선택(Ctrl+A) & 되돌리기(Ctrl+Z) 정복! 👑",
+            summary: "👑 <strong>Ctrl + A</strong> : 화면의 모든 글자와 객체를 한 번에 전부 선택!<br>🗑️ <strong>Delete</strong> : 선택한 것을 시원하게 삭제!<br>✨ <strong>Ctrl + Z</strong> : 방금 한 실수를 마법처럼 취소하고 원래 상태로 되돌리는 가장 소중한 단축키!"
+          });
+        }, 300);
+      }
+    }
+
+    function resetStage4() {
+      APP_STATE.stage4.step = 1;
+      APP_STATE.stage4.isAllSelected = false;
+      APP_STATE.stage4.isDeleted = false;
+      APP_STATE.stage4.isRestored = false;
+      document.getElementById('farm-animals-box').classList.remove('hidden');
+      document.getElementById('farm-empty-msg').classList.add('hidden');
+      document.querySelectorAll('.farm-animal').forEach(el => {
+        el.classList.remove('selected-object', 'ring-4', 'ring-purple-400');
+      });
+      document.getElementById('farm-item-count').innerText = "동물 6마리 거주 중";
+      document.getElementById('farm-guide-text').innerHTML = `농장을 콕 클릭한 뒤 키보드의 <span class="font-extrabold text-purple-700">Ctrl + A</span> 키를 눌러 동물들을 한 번에 모두 선택해보세요!`;
+      updateStep4Chips(1);
+      showMiniBadge("농장이 초기 상태로 리셋되었습니다.");
+    }
+
+    // [미션 5 로직]
+    function focusPasteBox() {
+      const box = document.getElementById('stage5-paste-box');
+      box?.focus();
+    }
+
+    function captureMasterBadge() {
+      const card = document.getElementById('target-capture-card');
+      if (!card) return;
+
+      card.classList.add('ring-4', 'ring-pink-400', 'scale-95');
+      setTimeout(() => {
+        card.classList.remove('ring-4', 'ring-pink-400', 'scale-95');
+      }, 300);
+
+      const badgeSvg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="340" height="220" viewBox="0 0 340 220">
+          <defs>
+            <linearGradient id="cardGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#7e22ce" />
+              <stop offset="50%" stop-color="#ec4899" />
+              <stop offset="100%" stop-color="#3b82f6" />
+            </linearGradient>
+            <linearGradient id="crownGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#fde047" />
+              <stop offset="100%" stop-color="#f59e0b" />
+            </linearGradient>
+          </defs>
+          <rect width="340" height="220" rx="20" fill="url(#cardGrad)" />
+          <rect x="6" y="6" width="328" height="208" rx="16" fill="#0f172a" />
+          <circle cx="170" cy="70" r="32" fill="url(#crownGrad)" />
+          <text x="170" y="78" font-size="28" text-anchor="middle" fill="#0f172a">👑</text>
+          <text x="170" y="125" font-size="11" font-weight="bold" fill="#fde047" text-anchor="middle" letter-spacing="2">OFFICIAL MASTER BADGE</text>
+          <text x="170" y="148" font-size="15" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="sans-serif">WINDOWS SHORTCUT MASTER</text>
+          <text x="170" y="172" font-size="10" fill="#e9d5ff" text-anchor="middle" font-family="sans-serif">Ctrl+C • Ctrl+V • Ctrl+X • Ctrl+A • Ctrl+Z</text>
+          <rect x="90" y="184" width="160" height="22" rx="11" fill="rgba(255,255,255,0.15)" />
+          <text x="170" y="199" font-size="10" font-weight="bold" fill="#6ee7b7" text-anchor="middle">★ 공인 1급 라이선스 ★</text>
+        </svg>
+      `;
+
+      const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(badgeSvg)}`;
+      APP_STATE.virtualClipboard.type = 'image';
+      APP_STATE.virtualClipboard.content = dataUrl;
+
+      playSound('copy');
+      showMiniBadge("📸 엠블럼 캡처 복사 완료! 오른쪽 액자를 누르고 Ctrl + V를 누르세요.");
+    }
+
+    const stage5PasteBox = document.getElementById('stage5-paste-box');
+    if (stage5PasteBox) {
+      stage5PasteBox.addEventListener('paste', (e) => {
+        e.preventDefault();
+        let handled = false;
+
+        if (e.clipboardData && e.clipboardData.items) {
+          const items = e.clipboardData.items;
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+              const file = items[i].getAsFile();
+              const reader = new FileReader();
+              reader.onload = (event) => {
+                applyPastedBadgeImage(event.target.result);
+              };
+              reader.readAsDataURL(file);
+              handled = true;
+              break;
+            }
+          }
+        }
+
+        if (!handled && APP_STATE.virtualClipboard.type === 'image' && APP_STATE.virtualClipboard.content) {
+          applyPastedBadgeImage(APP_STATE.virtualClipboard.content);
+          handled = true;
+        }
+
+        if (!handled) {
+          showCustomNotice("안내", "먼저 [📸 엠블럼 원클릭 캡처 복사]를 누르거나 캡처 단축키를 사용해주세요.");
+        }
+      });
+    }
+
+    function applyPastedBadgeImage(imgSrc) {
+      APP_STATE.stage5.badgeImage = imgSrc;
+      document.getElementById('stage5-paste-placeholder').classList.add('hidden');
+      const preview = document.getElementById('stage5-pasted-preview');
+      preview.classList.remove('hidden');
+      const img = document.getElementById('stage5-preview-img');
+      img.src = imgSrc;
+
+      playSound('paste');
+      const statusBadge = document.getElementById('stage5-status-badge');
+      statusBadge.innerText = "엠블럼 장착 완료! 이름 입력 대기";
+      statusBadge.className = "text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md";
+
+      const nameInput = document.getElementById('stage5-username');
+      if (!nameInput.value) {
+        nameInput.focus();
+      }
+    }
+
+    function completeStage5() {
+      const nameInput = document.getElementById('stage5-username');
+      const userName = nameInput.value.trim();
+
+      if (!APP_STATE.stage5.badgeImage) {
+        showCustomNotice("엠블럼 필요", "마스터 카드 액자에 캡처 이미지를 먼저 Ctrl + V 로 붙여넣어 주세요!");
+        focusPasteBox();
+        return;
+      }
+
+      if (!userName) {
+        showCustomNotice("이름 필요", "마스터 카드에 새길 본인의 이름을 입력해 주세요!");
+        nameInput.focus();
+        return;
+      }
+
+      APP_STATE.stage5.userName = userName;
+      APP_STATE.completedMissions[5] = true;
+      saveState();
+      updateTabBadges();
+
+      document.getElementById('certRecipient').innerText = userName;
+      document.getElementById('certMasterName').innerText = `마스터: ${userName}`;
+      document.getElementById('certUserBadgeImg').src = APP_STATE.stage5.badgeImage;
+
+      completeMission(5, {
+        title: `축하합니다, ${userName} 마스터님! 🎉`,
+        summary: `📸 <strong>Win + Shift + S</strong> 로 화면의 멋진 마스터 엠블럼을 캡처하고,<br>📋 <strong>Ctrl + V</strong> 로 나만의 마스터 카드 액자에 완벽하게 붙여넣었습니다!<br>👑 이제 공식 인증 마스터 카드를 수여합니다!`
+      });
+    }
+
+    function resetStage5() {
+      APP_STATE.stage5.badgeImage = null;
+      document.getElementById('stage5-paste-placeholder').classList.remove('hidden');
+      document.getElementById('stage5-pasted-preview').classList.add('hidden');
+      document.getElementById('stage5-preview-img').src = '';
+      const statusBadge = document.getElementById('stage5-status-badge');
+      statusBadge.innerText = "이미지 & 이름 대기 중";
+      statusBadge.className = "text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md";
+      showMiniBadge("카드 만들기 액자가 비워졌습니다.");
+    }
+
+    // 미션 탭 전환
+    function switchMission(num) {
+      APP_STATE.currentMission = num;
+
+      for (let i = 1; i <= 5; i++) {
+        const stageView = document.getElementById(`mission-stage-${i}`);
+        const tabBtn = document.getElementById(`tab-btn-${i}`);
+        if (!stageView || !tabBtn) continue;
+
+        if (i === num) {
+          stageView.classList.remove('hidden');
+          stageView.classList.add('flex');
+          tabBtn.className = "tab-button relative p-3 rounded-2xl border-2 border-purple-400 bg-white shadow-md transition text-left flex items-center gap-3";
+        } else {
+          stageView.classList.add('hidden');
+          stageView.classList.remove('flex');
+          tabBtn.className = "tab-button relative p-3 rounded-2xl border-2 border-transparent bg-white/70 shadow-sm hover:shadow transition text-left flex items-center gap-3";
+        }
+      }
+
+      document.getElementById('missionProgressBar').style.width = `${num * 20}%`;
+      updateHUDForMission(num);
+    }
+
+    function updateHUDForMission(stageNum) {
+      const label = document.getElementById('targetShortcutLabel');
+      const desc = document.getElementById('targetShortcutDesc');
+
+      switch (stageNum) {
+        case 1:
+          label.innerText = "Ctrl + C (복사) & Ctrl + V (붙여넣기)";
+          desc.innerHTML = `글자를 선택하고 <span class="font-bold text-purple-700">Ctrl + C</span> 로 복사한 뒤, 금고에 <span class="font-bold text-purple-700">Ctrl + V</span> 로 쏙 넣으세요!`;
+          break;
+        case 2:
+          label.innerText = "Ctrl + C & Ctrl + V (3종류 캐릭터 모두 복사)";
+          desc.innerHTML = `토끼🐰, 곰🐻, 고양이🐱를 각각 클릭하고 <span class="font-bold text-purple-700">Ctrl + C</span>, 잔디밭에서 <span class="font-bold text-purple-700">Ctrl + V</span> 로 3종류를 모두 초대하세요!`;
+          break;
+        case 3:
+          label.innerText = "Ctrl + X (잘라내기) & Ctrl + V (붙여넣기)";
+          desc.innerHTML = `원래 자리에서 없애면서 옮길 땐 <span class="font-bold text-orange-600">Ctrl + X</span> 를 씁니다!`;
+          break;
+        case 4:
+          label.innerText = "Ctrl + A (모두선택) ➔ Del ➔ Ctrl + Z (되돌리기)";
+          desc.innerHTML = `한꺼번에 다 잡을 땐 <span class="font-bold text-indigo-700">Ctrl + A</span>, 되돌릴 땐 <span class="font-bold text-indigo-700">Ctrl + Z</span> 마법을 부려보세요!`;
+          break;
+        case 5:
+          label.innerText = "Win + Shift + S 또는 PrtScn (화면 캡처) & Ctrl + V (붙여넣기)";
+          desc.innerHTML = `화면 엠블럼을 <span class="font-bold text-pink-600">Win + Shift + S</span> 또는 <span class="font-bold text-pink-600">Print Screen(PrtScn)</span> 키로 캡처하고, 액자에 <span class="font-bold text-purple-700">Ctrl + V</span> 로 붙여넣으세요!`;
+          break;
+      }
+    }
+
+    function updateTabBadges() {
+      for (let i = 1; i <= 5; i++) {
+        const badge = document.getElementById(`tab-badge-${i}`);
+        if (APP_STATE.completedMissions[i]) {
+          badge?.classList.remove('hidden');
+        }
+      }
+    }
+
+    function closeModalAndNext() {
+      document.getElementById('congratsModal').classList.add('hidden');
+      if (APP_STATE.currentMission < 5) {
+        switchMission(APP_STATE.currentMission + 1);
+      } else {
+        showCertificate();
+      }
+    }
+
+    function completeMission(stageNum, info) {
+      APP_STATE.completedMissions[stageNum] = true;
+      saveState();
+      updateTabBadges();
+      playSound('success');
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+
+      const modal = document.getElementById('congratsModal');
+      document.getElementById('modalTitle').innerText = info.title;
+      document.getElementById('modalSummary').innerHTML = info.summary;
+
+      const nextBtnText = document.getElementById('modalNextBtnText');
+      if (stageNum === 5) {
+        nextBtnText.innerText = "나만의 공식 마스터 카드 발급받기! 🎓";
+      } else {
+        nextBtnText.innerText = `미션 ${stageNum + 1} 단계로 가기`;
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function showCertificate() {
+      const certModal = document.getElementById('certificateModal');
+      const now = new Date();
+      document.getElementById('certDate').innerText = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일`;
+
+      const userName = APP_STATE.stage5.userName || '멋진 단축키 탐험가';
+      document.getElementById('certRecipient').innerText = userName;
+      document.getElementById('certMasterName').innerText = `마스터: ${userName}`;
+
+      if (APP_STATE.stage5.badgeImage) {
+        document.getElementById('certUserBadgeImg').src = APP_STATE.stage5.badgeImage;
+      } else {
+        captureMasterBadge();
+        document.getElementById('certUserBadgeImg').src = APP_STATE.virtualClipboard.content;
+      }
+
+      certModal.classList.remove('hidden');
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.4 }
+        });
+      }
+    }
+
+    // 전체 게임 데이터 및 각 단계 초기화 통합 함수
+    function resetAllGameProgress(isCompletionReset = false) {
+      APP_STATE.completedMissions = { 1: false, 2: false, 3: false, 4: false, 5: false };
+      APP_STATE.stage5.userName = '';
+      APP_STATE.virtualClipboard = { type: null, content: null };
+
+      saveState();
+      updateTabBadges();
+      resetStage2();
+      resetStage3();
+      resetStage4();
+      resetStage5();
+
+      const s1Target = document.getElementById('stage1-target');
+      if (s1Target) s1Target.value = "";
+      const s1Fb = document.getElementById('stage1-feedback');
+      if (s1Fb) {
+        s1Fb.innerHTML = `<i class="fa-solid fa-bell text-amber-500"></i> 아직 마법 주문이 들어오지 않았어요! 복사해서 붙여넣어 보세요.`;
+        s1Fb.className = "p-3.5 rounded-xl bg-white border border-purple-100 text-xs text-slate-600 flex items-center gap-2";
+      }
+
+      const nameInput = document.getElementById('stage5-username');
+      if (nameInput) nameInput.value = "";
+
+      switchMission(1);
+
+      if (isCompletionReset) {
+        showMiniBadge("🎓 축하합니다! 전 과정을 마스터하여 게임이 처음부터 다시 시작되도록 자동 초기화되었습니다!");
+      } else {
+        showMiniBadge("모든 학습 진도가 새로 시작되었습니다!");
+      }
+    }
+
+    function closeCertificate() {
+      document.getElementById('certificateModal').classList.add('hidden');
+      // 5단계 수료 완료 후 자동으로 전체 게임을 초기화하여 1단계로 순환
+      resetAllGameProgress(true);
+    }
+
+    function promptResetProgress() {
+      resetAllGameProgress(false);
+    }
+
+    function showMiniBadge(text) {
+      let toast = document.getElementById('mini-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'mini-toast';
+        toast.className = "fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold shadow-2xl z-50 transition duration-300 pointer-events-none flex items-center gap-2 border border-purple-400";
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<i class="fa-solid fa-sparkles text-yellow-300"></i> ${text}`;
+      toast.style.opacity = '1';
+      toast.style.transform = 'translate(-50%, 0)';
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translate(-50%, 10px)';
+      }, 2400);
+    }
+
+    function showCustomNotice(title, msg) {
+      showMiniBadge(`${title}: ${msg.replace(/<[^>]*>?/gm, '')}`);
+    }
+
+    // 앱 시작 시 로드
+    window.addEventListener('load', () => {
+      loadSavedState();
+      switchMission(1);
+
+      const s1Source = document.getElementById('stage1-source');
+      if (s1Source) {
+        s1Source.addEventListener('select', updateStage1SelectStatus);
+        s1Source.addEventListener('mouseup', updateStage1SelectStatus);
+        s1Source.addEventListener('keyup', updateStage1SelectStatus);
+      }
+
+      const s3Source = document.getElementById('stage3-source');
+      if (s3Source) {
+        s3Source.addEventListener('select', updateStage3SelectStatus);
+        s3Source.addEventListener('mouseup', updateStage3SelectStatus);
+        s3Source.addEventListener('keyup', updateStage3SelectStatus);
+      }
+
+      // 미션 3 입력창 네이티브 paste 이벤트 가로채기 (1단계 주문 유입 차단)
+      const s3Target = document.getElementById('stage3-target');
+      if (s3Target) {
+        s3Target.addEventListener('paste', (e) => {
+          e.preventDefault();
+          pasteStage3Text();
+        });
+      }
+    });
+  </script>
+</body>
+</html>
